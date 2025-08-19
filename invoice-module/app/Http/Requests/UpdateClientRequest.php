@@ -11,7 +11,7 @@ class UpdateClientRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,8 +21,30 @@ class UpdateClientRequest extends FormRequest
      */
     public function rules(): array
     {
+        $clientId = $this->route('client')->id ?? $this->route('client');
+        
         return [
-            //
+            'nom' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|unique:clients,email,' . $clientId,
+            'siret' => 'nullable|string|size:14|unique:clients,siret,' . $clientId,
+            'date_creation' => 'nullable|date'
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'nom.required' => 'Le nom du client est obligatoire.',
+            'nom.max' => 'Le nom ne peut pas dépasser 255 caractères.',
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'L\'adresse email doit être valide.',
+            'email.unique' => 'Cette adresse email est déjà utilisée.',
+            'siret.size' => 'Le SIRET doit contenir exactement 14 caractères.',
+            'siret.unique' => 'Ce SIRET est déjà utilisé.',
+            'date_creation.date' => 'La date de création doit être une date valide.'
         ];
     }
 }
