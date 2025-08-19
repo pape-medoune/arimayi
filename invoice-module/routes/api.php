@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\InvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +18,29 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Invoice Module API Routes
+|--------------------------------------------------------------------------
+*/
+
+// Routes pour la gestion des clients
+Route::apiResource('clients', ClientController::class);
+
+// Routes pour la gestion des factures
+Route::apiResource('invoices', InvoiceController::class);
+
+// Routes supplémentaires pour les statistiques
+Route::get('clients/{client}/invoices', [ClientController::class, 'getClientInvoices']);
+Route::get('invoices/stats/summary', [InvoiceController::class, 'getInvoiceStats']);
+
+// Route de test pour vérifier l'API
+Route::get('health', function () {
+    return response()->json([
+        'status' => 'OK',
+        'message' => 'Invoice Module API is running',
+        'timestamp' => now()
+    ]);
 });
