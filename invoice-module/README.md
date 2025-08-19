@@ -22,7 +22,7 @@ Un module complet de gestion de facturation développé avec Laravel, offrant un
 
 1. **Cloner le projet**
 ```bash
-git clone <repository-url>
+git clone https://github.com/pape-medoune/arimayi.git
 cd invoice-module
 ```
 
