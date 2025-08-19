@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Services\InvoiceService;
+use App\Http\Requests\StoreInvoiceRequest;
+use App\Http\Requests\UpdateInvoiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -46,19 +48,10 @@ class InvoiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreInvoiceRequest $request): JsonResponse
     {
         try {
-            $validatedData = $request->validate([
-                'client_id' => 'required|exists:clients,id',
-                'numero_facture' => 'required|string|unique:invoices,numero_facture',
-                'date_facture' => 'required|date',
-                'lines' => 'required|array|min:1',
-                'lines.*.description' => 'required|string|max:255',
-                'lines.*.quantite' => 'required|numeric|min:0.01',
-                'lines.*.prix_unitaire_ht' => 'required|numeric|min:0',
-                'lines.*.taux_tva' => 'required|numeric|min:0|max:100'
-            ]);
+            $validatedData = $request->validated();
 
             DB::beginTransaction();
 
@@ -93,13 +86,6 @@ class InvoiceController extends Controller
                 'data' => $invoice,
                 'message' => 'Facture créée avec succès'
             ], 201);
-        } catch (ValidationException $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -135,22 +121,12 @@ class InvoiceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateInvoiceRequest $request, string $id): JsonResponse
     {
         try {
             $invoice = Invoice::findOrFail($id);
 
-            $validatedData = $request->validate([
-                'client_id' => 'sometimes|required|exists:clients,id',
-                'numero_facture' => 'sometimes|required|string|unique:invoices,numero_facture,' . $id,
-                'date_facture' => 'sometimes|required|date',
-                'lines' => 'sometimes|required|array|min:1',
-                'lines.*.id' => 'sometimes|exists:invoice_lines,id',
-                'lines.*.description' => 'required|string|max:255',
-                'lines.*.quantite' => 'required|numeric|min:0.01',
-                'lines.*.prix_unitaire_ht' => 'required|numeric|min:0',
-                'lines.*.taux_tva' => 'required|numeric|min:0|max:100'
-            ]);
+            $validatedData = $request->validated();
 
             DB::beginTransaction();
 
@@ -188,13 +164,6 @@ class InvoiceController extends Controller
                 'data' => $invoice,
                 'message' => 'Facture mise à jour avec succès'
             ]);
-        } catch (ValidationException $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
