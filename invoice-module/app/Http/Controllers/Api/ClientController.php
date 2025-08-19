@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Services\ClientService;
 use App\Services\InvoiceService;
+use App\Http\Requests\StoreClientRequest;
+use App\Http\Requests\UpdateClientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -45,29 +47,17 @@ class ClientController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreClientRequest $request): JsonResponse
     {
         try {
-            $validatedData = $request->validate([
-                'nom' => 'required|string|max:255',
-                'email' => 'required|email|unique:clients,email',
-                'siret' => 'required|string|size:14|unique:clients,siret',
-                'date_creation' => 'required|date'
-            ]);
-
-            $client = Client::create($validatedData);
+            $validated = $request->validated();
+            $client = Client::create($validated);
 
             return response()->json([
                 'success' => true,
                 'data' => $client,
                 'message' => 'Client créé avec succès'
             ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -102,31 +92,18 @@ class ClientController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateClientRequest $request, string $id): JsonResponse
     {
         try {
             $client = Client::findOrFail($id);
-
-            $validatedData = $request->validate([
-                'nom' => 'sometimes|required|string|max:255',
-                'email' => 'sometimes|required|email|unique:clients,email,' . $id,
-                'siret' => 'sometimes|required|string|size:14|unique:clients,siret,' . $id,
-                'date_creation' => 'sometimes|required|date'
-            ]);
-
-            $client->update($validatedData);
+            $validated = $request->validated();
+            $client->update($validated);
 
             return response()->json([
                 'success' => true,
-                'data' => $client,
+                'data' => $client->fresh(),
                 'message' => 'Client mis à jour avec succès'
             ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur de validation',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
