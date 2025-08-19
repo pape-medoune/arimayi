@@ -4,12 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Services\ClientService;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
 class ClientController extends Controller
 {
+    protected ClientService $clientService;
+    protected InvoiceService $invoiceService;
+
+    public function __construct(ClientService $clientService, InvoiceService $invoiceService)
+    {
+        $this->clientService = $clientService;
+        $this->invoiceService = $invoiceService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -152,6 +162,28 @@ class ClientController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la suppression du client',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère les factures d'un client
+     */
+    public function getClientInvoices(Client $client): JsonResponse
+    {
+        try {
+            $invoices = $this->invoiceService->getClientInvoices($client);
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoices,
+                'message' => 'Factures du client récupérées avec succès'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des factures du client',
                 'error' => $e->getMessage()
             ], 500);
         }
