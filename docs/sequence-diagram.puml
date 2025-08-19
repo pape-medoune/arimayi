@@ -1,0 +1,131 @@
+@startuml Diagramme de Séquence - Création d'une Facture
+
+!define ACTOR participant
+!define CONTROLLER participant
+!define SERVICE participant
+!define MODEL participant
+!define DATABASE participant
+
+ACTOR "Utilisateur" as User
+CONTROLLER "InvoiceController" as Controller
+SERVICE "InvoiceService" as InvoiceService
+SERVICE "CalculationService" as CalcService
+MODEL "Invoice" as InvoiceModel
+MODEL "InvoiceLine" as LineModel
+MODEL "Client" as ClientModel
+DATABASE "Base de Données" as DB
+
+title Séquence de Création d'une Facture avec Calculs Automatiques
+
+== Authentification (Bonus) ==
+User -> Controller : POST /api/invoices
+note right : Headers: Authorization Bearer token
+Controller -> Controller : Vérifier authentification
+alt Token invalide
+    Controller --> User : 401 Unauthorized
+else Token valide
+    Controller -> Controller : Continuer le traitement
+end
+
+== Validation des Données ==
+Controller -> Controller : Valider InvoiceRequest
+note right
+  Validation :
+  - client_id requis et existant
+  - date requis et valide
+  - lignes requises (min 1)
+  - description, quantité, prix requis
+  - taux_tva dans [0, 5.5, 10, 20]
+end note
+
+alt Validation échoue
+    Controller --> User : 422 Validation Error
+else Validation réussie
+    Controller -> Controller : Continuer
+end
+
+== Vérification du Client ==
+Controller -> ClientModel : findOrFail(client_id)
+ClientModel -> DB : SELECT * FROM clients WHERE id = ?
+DB --> ClientModel : Client data
+ClientModel --> Controller : Client instance
+
+alt Client non trouvé
+    Controller --> User : 404 Client Not Found
+else Client trouvé
+    Controller -> Controller : Continuer
+end
+
+== Création de la Facture ==
+Controller -> InvoiceService : createInvoice(data)
+InvoiceService -> InvoiceModel : create(invoice_data)
+InvoiceModel -> DB : INSERT INTO invoices
+DB --> InvoiceModel : Invoice ID
+InvoiceModel --> InvoiceService : Invoice instance
+
+== Traitement des Lignes de Facture ==
+loop Pour chaque ligne de facture
+    InvoiceService -> LineModel : create(line_data)
+    LineModel -> DB : INSERT INTO invoice_lines
+    DB --> LineModel : Line ID
+    LineModel --> InvoiceService : InvoiceLine instance
+    
+    InvoiceService -> CalcService : calculateLineAmounts(line)
+    CalcService -> CalcService : Calculer montant_ht = quantité × prix_unitaire
+    CalcService -> CalcService : Calculer montant_tva = montant_ht × taux_tva
+    CalcService -> CalcService : Calculer montant_ttc = montant_ht + montant_tva
+    CalcService -> LineModel : update(calculated_amounts)
+    LineModel -> DB : UPDATE invoice_lines SET montants
+    DB --> LineModel : Success
+    LineModel --> CalcService : Updated line
+    CalcService --> InvoiceService : Ligne calculée
+end
+
+== Calcul des Totaux de la Facture ==
+InvoiceService -> CalcService : calculateInvoiceTotals(invoice)
+CalcService -> LineModel : where('invoice_id', invoice.id)->get()
+LineModel -> DB : SELECT * FROM invoice_lines WHERE invoice_id = ?
+DB --> LineModel : Collection of lines
+LineModel --> CalcService : Lines collection
+
+CalcService -> CalcService : total_ht = sum(montant_ht)
+CalcService -> CalcService : total_tva = sum(montant_tva)
+CalcService -> CalcService : total_ttc = sum(montant_ttc)
+
+CalcService -> InvoiceModel : update(totals)
+InvoiceModel -> DB : UPDATE invoices SET totaux
+DB --> InvoiceModel : Success
+InvoiceModel --> CalcService : Updated invoice
+CalcService --> InvoiceService : Facture avec totaux
+
+== Retour de la Réponse ==
+InvoiceService -> InvoiceModel : load('client', 'invoiceLines')
+InvoiceModel -> DB : SELECT avec relations
+DB --> InvoiceModel : Facture complète
+InvoiceModel --> InvoiceService : Invoice with relations
+InvoiceService --> Controller : Facture créée
+
+Controller -> Controller : Formater réponse JSON
+Controller --> User : 201 Created + Invoice JSON
+
+note over User, DB
+  Réponse JSON contient :
+  - Données de la facture
+  - Informations du client
+  - Lignes de facture avec calculs
+  - Totaux HT, TVA, TTC
+end note
+
+== Gestion des Erreurs ==
+alt Erreur base de données
+    DB --> InvoiceModel : Database Error
+    InvoiceModel --> InvoiceService : Exception
+    InvoiceService --> Controller : Exception
+    Controller --> User : 500 Internal Server Error
+else Erreur de calcul
+    CalcService --> InvoiceService : Calculation Error
+    InvoiceService --> Controller : Exception
+    Controller --> User : 422 Calculation Error
+end
+
+@enduml

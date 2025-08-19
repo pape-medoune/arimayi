@@ -1,0 +1,154 @@
+@startuml Diagramme de Classes - Module Facturation
+
+!define ENTITY class
+!define SERVICE class
+!define CONTROLLER class
+
+package "Models" {
+    ENTITY Client {
+        -id: int
+        -nom: string
+        -email: string
+        -siret: string
+        -date_creation: datetime
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +getId(): int
+        +getNom(): string
+        +getEmail(): string
+        +getSiret(): string
+        +getDateCreation(): datetime
+        +invoices(): HasMany
+    }
+
+    ENTITY Invoice {
+        -id: int
+        -client_id: int
+        -numero_facture: string
+        -date_facture: date
+        -total_ht: decimal
+        -total_tva: decimal
+        -total_ttc: decimal
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +getId(): int
+        +getClientId(): int
+        +getNumeroFacture(): string
+        +getDateFacture(): date
+        +getTotalHt(): decimal
+        +getTotalTva(): decimal
+        +getTotalTtc(): decimal
+        +client(): BelongsTo
+        +invoiceLines(): HasMany
+        +calculateTotals(): void
+    }
+
+    ENTITY InvoiceLine {
+        -id: int
+        -invoice_id: int
+        -description: string
+        -quantite: decimal
+        -prix_unitaire_ht: decimal
+        -taux_tva: decimal
+        -montant_ht: decimal
+        -montant_tva: decimal
+        -montant_ttc: decimal
+        -created_at: timestamp
+        -updated_at: timestamp
+        --
+        +getId(): int
+        +getInvoiceId(): int
+        +getDescription(): string
+        +getQuantite(): decimal
+        +getPrixUnitaireHt(): decimal
+        +getTauxTva(): decimal
+        +getMontantHt(): decimal
+        +getMontantTva(): decimal
+        +getMontantTtc(): decimal
+        +invoice(): BelongsTo
+        +calculateAmounts(): void
+    }
+}
+
+package "Controllers" {
+    CONTROLLER ClientController {
+        -clientService: ClientService
+        --
+        +index(): JsonResponse
+        +store(ClientRequest): JsonResponse
+        +show(Client): JsonResponse
+    }
+
+    CONTROLLER InvoiceController {
+        -invoiceService: InvoiceService
+        --
+        +index(): JsonResponse
+        +store(InvoiceRequest): JsonResponse
+        +show(Invoice): JsonResponse
+        +exportJson(Invoice): JsonResponse
+        +search(SearchRequest): JsonResponse
+    }
+}
+
+package "Services" {
+    SERVICE ClientService {
+        --
+        +getAllClients(): Collection
+        +createClient(array): Client
+        +getClientById(int): Client
+    }
+
+    SERVICE InvoiceService {
+        --
+        +getAllInvoices(): Collection
+        +createInvoice(array): Invoice
+        +getInvoiceById(int): Invoice
+        +calculateInvoiceTotals(Invoice): void
+        +exportInvoiceToJson(Invoice): array
+        +searchInvoices(array): Collection
+    }
+
+    SERVICE CalculationService {
+        --
+        +calculateLineAmounts(InvoiceLine): void
+        +calculateInvoiceTotals(Invoice): array
+        +validateTvaRate(decimal): bool
+    }
+}
+
+package "Requests" {
+    class ClientRequest {
+        +rules(): array
+        +messages(): array
+    }
+
+    class InvoiceRequest {
+        +rules(): array
+        +messages(): array
+    }
+
+    class SearchRequest {
+        +rules(): array
+        +messages(): array
+    }
+}
+
+' Relations
+Client ||--o{ Invoice : "a plusieurs"
+Invoice ||--o{ InvoiceLine : "contient"
+
+ClientController --> ClientService : "utilise"
+InvoiceController --> InvoiceService : "utilise"
+InvoiceService --> CalculationService : "utilise"
+
+ClientService --> Client : "gère"
+InvoiceService --> Invoice : "gère"
+InvoiceService --> InvoiceLine : "gère"
+
+ClientController --> ClientRequest : "valide avec"
+InvoiceController --> InvoiceRequest : "valide avec"
+InvoiceController --> SearchRequest : "valide avec"
+
+@enduml

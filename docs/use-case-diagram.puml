@@ -1,0 +1,103 @@
+@startuml Diagramme de Cas d'Utilisation - Module Facturation
+
+!define ACTOR actor
+!define USECASE usecase
+
+left to right direction
+
+ACTOR Utilisateur as user
+ACTOR "Système AriMayi" as system
+
+package "Module de Facturation" {
+    
+    package "Gestion des Clients" {
+        USECASE "Lister les clients" as UC1
+        USECASE "Créer un client" as UC2
+        USECASE "Consulter un client" as UC3
+        USECASE "Valider les données client" as UC4
+    }
+    
+    package "Gestion des Factures" {
+        USECASE "Lister les factures" as UC5
+        USECASE "Créer une facture" as UC6
+        USECASE "Consulter une facture" as UC7
+        USECASE "Ajouter des lignes de facture" as UC8
+        USECASE "Calculer les montants" as UC9
+        USECASE "Valider les règles métier" as UC10
+    }
+    
+    package "Export et Recherche" {
+        USECASE "Exporter facture en JSON" as UC11
+        USECASE "Rechercher factures par client" as UC12
+        USECASE "Rechercher factures par date" as UC13
+    }
+    
+    package "Authentification (Bonus)" {
+        USECASE "S'authentifier" as UC14
+        USECASE "Gérer les tokens" as UC15
+    }
+}
+
+' Relations Utilisateur
+user --> UC1 : "consulte"
+user --> UC2 : "crée"
+user --> UC3 : "consulte"
+user --> UC5 : "consulte"
+user --> UC6 : "crée"
+user --> UC7 : "consulte"
+user --> UC11 : "exporte"
+user --> UC12 : "recherche"
+user --> UC13 : "recherche"
+user --> UC14 : "s'authentifie"
+
+' Relations Système
+system --> UC4 : "valide automatiquement"
+system --> UC8 : "gère automatiquement"
+system --> UC9 : "calcule automatiquement"
+system --> UC10 : "vérifie automatiquement"
+system --> UC15 : "gère automatiquement"
+
+' Relations d'inclusion
+UC2 ..> UC4 : "<<include>>"
+UC6 ..> UC8 : "<<include>>"
+UC6 ..> UC9 : "<<include>>"
+UC6 ..> UC10 : "<<include>>"
+UC8 ..> UC9 : "<<include>>"
+
+' Relations d'extension
+UC1 <.. UC12 : "<<extend>>"
+UC1 <.. UC13 : "<<extend>>"
+UC7 <.. UC11 : "<<extend>>"
+
+' Relations de dépendance
+UC6 --> UC3 : "nécessite un client existant"
+UC8 --> UC6 : "nécessite une facture existante"
+UC11 --> UC7 : "nécessite une facture existante"
+UC12 --> UC3 : "utilise les données client"
+
+note right of UC4
+  Règles de validation :
+  - Nom obligatoire
+  - Email valide
+  - SIRET valide
+  - Pas de doublons
+end note
+
+note right of UC10
+  Règles métier :
+  - Au moins une ligne par facture
+  - Aucun champ vide
+  - TVA : 0%, 5.5%, 10% ou 20%
+  - Quantité > 0
+  - Prix unitaire ≥ 0
+end note
+
+note right of UC9
+  Calculs automatiques :
+  - Montant HT = Quantité × Prix unitaire
+  - Montant TVA = Montant HT × Taux TVA
+  - Montant TTC = Montant HT + Montant TVA
+  - Totaux facture = Somme des lignes
+end note
+
+@enduml
