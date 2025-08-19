@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
+use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +13,12 @@ use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
+    protected InvoiceService $invoiceService;
+
+    public function __construct(InvoiceService $invoiceService)
+    {
+        $this->invoiceService = $invoiceService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -225,6 +232,28 @@ class InvoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erreur lors de la suppression de la facture',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupère les statistiques des factures
+     */
+    public function getInvoiceStats(): JsonResponse
+    {
+        try {
+            $stats = $this->invoiceService->getInvoiceStatistics();
+
+            return response()->json([
+                'success' => true,
+                'data' => $stats,
+                'message' => 'Statistiques des factures récupérées avec succès'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des statistiques',
                 'error' => $e->getMessage()
             ], 500);
         }
