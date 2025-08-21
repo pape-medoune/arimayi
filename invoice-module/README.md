@@ -22,7 +22,7 @@ Un module complet de gestion de facturation développé avec Laravel, offrant un
 
 1. **Cloner le projet**
 ```bash
-git clone <repository-url>
+git clone https://github.com/pape-medoune/arimayi.git
 cd invoice-module
 ```
 
@@ -205,22 +205,7 @@ La documentation complète de l'API est disponible via les endpoints suivants :
 - Gestion d'erreurs avec codes HTTP appropriés
 - Validation automatique des données d'entrée
 
-## 🤝 Contribution
-
-1. Fork le projet
-2. Créez votre branche de fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
 ## 👥 Auteurs
 
-- Votre nom - Développeur principal
+- Mouhamedoune FALL- Développeur principal
 
-## 🆘 Support
-
-Pour toute question ou problème, veuillez ouvrir une issue sur GitHub.
