@@ -22,6 +22,39 @@ class InvoiceController extends Controller
         $this->invoiceService = $invoiceService;
     }
     /**
+     * @OA\Get(
+     *     path="/invoices",
+     *     tags={"Invoices"},
+     *     summary="Récupère la liste des factures",
+     *     description="Retourne une liste paginée de toutes les factures avec leurs clients et lignes",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des factures récupérée avec succès",
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
+     *                 @OA\Schema(
+     *                     @OA\Property(
+     *                         property="data",
+     *                         type="object",
+     *                         @OA\Property(property="current_page", type="integer", example=1),
+     *                         @OA\Property(
+     *                             property="data",
+     *                             type="array",
+     *                             @OA\Items(ref="#/components/schemas/Invoice")
+     *                         ),
+     *                         @OA\Property(property="total", type="integer", example=25)
+     *                     )
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
      * Display a listing of the resource.
      */
     public function index(): JsonResponse
@@ -46,6 +79,38 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @OA\Post(
+     *     path="/invoices",
+     *     tags={"Invoices"},
+     *     summary="Crée une nouvelle facture",
+     *     description="Crée une nouvelle facture avec ses lignes et calculs automatiques",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/StoreInvoiceRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Facture créée avec succès",
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
+     *                 @OA\Schema(
+     *                     @OA\Property(property="data", ref="#/components/schemas/Invoice")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
      * Store a newly created resource in storage.
      */
     public function store(StoreInvoiceRequest $request): JsonResponse
@@ -97,6 +162,36 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/invoices/{id}",
+     *     tags={"Invoices"},
+     *     summary="Récupère une facture spécifique",
+     *     description="Retourne les détails d'une facture avec son client et ses lignes",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la facture",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Facture récupérée avec succès",
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
+     *                 @OA\Schema(
+     *                     @OA\Property(property="data", ref="#/components/schemas/Invoice")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Facture non trouvée",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
      * Display the specified resource.
      */
     public function show(string $id): JsonResponse
@@ -119,6 +214,45 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @OA\Put(
+     *     path="/invoices/{id}",
+     *     tags={"Invoices"},
+     *     summary="Met à jour une facture",
+     *     description="Met à jour une facture existante avec recalcul automatique des totaux",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la facture",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/UpdateInvoiceRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Facture mise à jour avec succès",
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
+     *                 @OA\Schema(
+     *                     @OA\Property(property="data", ref="#/components/schemas/Invoice")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Facture non trouvée",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Erreur de validation",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrorResponse")
+     *     )
+     * )
      * Update the specified resource in storage.
      */
     public function update(UpdateInvoiceRequest $request, string $id): JsonResponse
@@ -175,6 +309,29 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @OA\Delete(
+     *     path="/invoices/{id}",
+     *     tags={"Invoices"},
+     *     summary="Supprime une facture",
+     *     description="Supprime une facture et toutes ses lignes associées",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de la facture",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Facture supprimée avec succès",
+     *         @OA\JsonContent(ref="#/components/schemas/SuccessResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Facture non trouvée",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
      * Remove the specified resource from storage.
      */
     public function destroy(string $id): JsonResponse
@@ -207,6 +364,29 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/invoices/stats",
+     *     tags={"Invoices"},
+     *     summary="Récupère les statistiques des factures",
+     *     description="Retourne des statistiques globales sur les factures (totaux, moyennes, etc.)",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Statistiques récupérées avec succès",
+     *         @OA\JsonContent(
+     *             allOf={
+     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
+     *                 @OA\Schema(
+     *                     @OA\Property(property="data", ref="#/components/schemas/InvoiceStats")
+     *                 )
+     *             }
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Erreur serveur",
+     *         @OA\JsonContent(ref="#/components/schemas/ErrorResponse")
+     *     )
+     * )
      * Récupère les statistiques des factures
      */
     public function getInvoiceStats(): JsonResponse

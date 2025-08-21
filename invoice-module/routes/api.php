@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\HealthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,13 +35,7 @@ Route::apiResource('invoices', InvoiceController::class);
 
 // Routes supplémentaires pour les statistiques
 Route::get('clients/{client}/invoices', [ClientController::class, 'getClientInvoices']);
-Route::get('invoices/stats/summary', [InvoiceController::class, 'getInvoiceStats']);
+Route::get('invoices/stats', [InvoiceController::class, 'getInvoiceStats']);
 
-// Route de test pour vérifier l'API
-Route::get('health', function () {
-    return response()->json([
-        'status' => 'OK',
-        'message' => 'Invoice Module API is running',
-        'timestamp' => now()
-    ]);
-});
+// Route de vérification de l'état de l'API
+Route::get('health', [HealthController::class, 'check']);

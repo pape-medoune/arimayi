@@ -1,0 +1,1034 @@
+openapi: 3.0.3
+info:
+  title: API Module de Facturation
+  description: |
+    API REST pour la gestion des clients et factures.
+    
+    Cette API permet de :
+    - Gérer les clients (CRUD)
+    - Gérer les factures avec leurs lignes (CRUD)
+    - Calculer automatiquement les montants HT, TVA et TTC
+    - Générer des numéros de facture automatiquement
+    - Obtenir des statistiques sur les factures
+    
+    ## Format de réponse standardisé
+    
+    Toutes les réponses suivent le format :
+    ```json
+    {
+      "success": true|false,
+      "data": { /* données */ },
+      "message": "Message descriptif",
+      "error": "Détails erreur (optionnel)",
+      "errors": { /* erreurs validation (optionnel) */ }
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Support API
+    email: support@facturation.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api
+    description: Serveur de développement
+  - url: https://api.facturation.com/api
+    description: Serveur de production
+
+paths:
+  /health:
+    get:
+      tags:
+        - Utilitaires
+      summary: Vérification de l'état de l'API
+      description: Endpoint pour vérifier que l'API fonctionne correctement
+      responses:
+        '200':
+          description: API opérationnelle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                success: true
+                data:
+                  status: "OK"
+                  timestamp: "2024-01-20T10:00:00.000000Z"
+                  version: "1.0.0"
+                message: "API opérationnelle"
+
+  /clients:
+    get:
+      tags:
+        - Clients
+      summary: Liste tous les clients
+      description: Récupère la liste complète des clients
+      responses:
+        '200':
+          description: Liste des clients récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientsListResponse'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    nom: "Entreprise ABC"
+                    email: "contact@abc.com"
+                    siret: "12345678901234"
+                    date_creation: "2024-01-15"
+                    created_at: "2024-01-15T10:00:00.000000Z"
+                    updated_at: "2024-01-15T10:00:00.000000Z"
+                message: "Clients récupérés avec succès"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      tags:
+        - Clients
+      summary: Crée un nouveau client
+      description: Ajoute un nouveau client dans le système
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+            example:
+              nom: "Entreprise ABC"
+              email: "contact@abc.com"
+              siret: "12345678901234"
+              date_creation: "2024-01-15"
+      responses:
+        '201':
+          description: Client créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  nom: "Entreprise ABC"
+                  email: "contact@abc.com"
+                  siret: "12345678901234"
+                  date_creation: "2024-01-15"
+                  created_at: "2024-01-15T10:00:00.000000Z"
+                  updated_at: "2024-01-15T10:00:00.000000Z"
+                message: "Client créé avec succès"
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /clients/{id}:
+    get:
+      tags:
+        - Clients
+      summary: Récupère un client spécifique
+      description: Obtient les détails d'un client par son ID
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      responses:
+        '200':
+          description: Client récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Clients
+      summary: Met à jour un client
+      description: Modifie les informations d'un client existant
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClientRequest'
+            example:
+              nom: "Entreprise ABC Modifiée"
+              email: "nouveau@abc.com"
+      responses:
+        '200':
+          description: Client mis à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Clients
+      summary: Supprime un client
+      description: Supprime un client du système (impossible s'il a des factures)
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      responses:
+        '200':
+          description: Client supprimé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: "Client supprimé avec succès"
+        '400':
+          description: Impossible de supprimer le client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "Impossible de supprimer le client car il a des factures associées"
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /clients/{id}/invoices:
+    get:
+      tags:
+        - Clients
+      summary: Récupère les factures d'un client
+      description: Obtient toutes les factures associées à un client
+      parameters:
+        - $ref: '#/components/parameters/ClientId'
+      responses:
+        '200':
+          description: Factures du client récupérées avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicesListResponse'
+        '404':
+          $ref: '#/components/responses/ClientNotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /invoices:
+    get:
+      tags:
+        - Factures
+      summary: Liste toutes les factures
+      description: Récupère la liste complète des factures avec leurs clients
+      responses:
+        '200':
+          description: Liste des factures récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicesWithClientListResponse'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    client_id: 1
+                    numero_facture: "FAC-2024-0001"
+                    date_facture: "2024-01-20"
+                    total_ht: "6600.00"
+                    total_tva: "1320.00"
+                    total_ttc: "7920.00"
+                    created_at: "2024-01-20T10:00:00.000000Z"
+                    updated_at: "2024-01-20T10:00:00.000000Z"
+                    client:
+                      id: 1
+                      nom: "Entreprise ABC"
+                      email: "contact@abc.com"
+                message: "Factures récupérées avec succès"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      tags:
+        - Factures
+      summary: Crée une nouvelle facture
+      description: Ajoute une nouvelle facture avec ses lignes dans le système
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceRequest'
+            example:
+              client_id: 1
+              numero_facture: "FAC-2024-0001"
+              date_facture: "2024-01-20"
+              lines:
+                - description: "Prestation de développement"
+                  quantite: 10
+                  prix_unitaire_ht: 500.00
+                  taux_tva: 20.00
+                - description: "Formation"
+                  quantite: 2
+                  prix_unitaire_ht: 800.00
+                  taux_tva: 20.00
+      responses:
+        '201':
+          description: Facture créée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceWithLinesResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /invoices/{id}:
+    get:
+      tags:
+        - Factures
+      summary: Récupère une facture spécifique
+      description: Obtient les détails d'une facture avec ses lignes et son client
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      responses:
+        '200':
+          description: Facture récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceWithLinesResponse'
+        '404':
+          $ref: '#/components/responses/InvoiceNotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Factures
+      summary: Met à jour une facture
+      description: Modifie une facture existante et ses lignes
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInvoiceRequest'
+            example:
+              date_facture: "2024-01-25"
+              lines:
+                - description: "Prestation de développement modifiée"
+                  quantite: 12
+                  prix_unitaire_ht: 550.00
+                  taux_tva: 20.00
+      responses:
+        '200':
+          description: Facture mise à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceWithLinesResponse'
+        '404':
+          $ref: '#/components/responses/InvoiceNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Factures
+      summary: Supprime une facture
+      description: Supprime une facture et toutes ses lignes
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      responses:
+        '200':
+          description: Facture supprimée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: "Facture supprimée avec succès"
+        '404':
+          $ref: '#/components/responses/InvoiceNotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /invoices/stats:
+    get:
+      tags:
+        - Factures
+      summary: Statistiques des factures
+      description: Récupère les statistiques globales des factures
+      responses:
+        '200':
+          description: Statistiques récupérées avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceStatsResponse'
+              example:
+                success: true
+                data:
+                  total_invoices: 25
+                  total_amount_ht: "125000.00"
+                  total_amount_tva: "25000.00"
+                  total_amount_ttc: "150000.00"
+                  average_amount_ttc: "6000.00"
+                  invoices_this_month: 8
+                  amount_this_month: "48000.00"
+                message: "Statistiques des factures récupérées avec succès"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    ClientId:
+      name: id
+      in: path
+      required: true
+      description: ID unique du client
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1
+
+    InvoiceId:
+      name: id
+      in: path
+      required: true
+      description: ID unique de la facture
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1
+
+  schemas:
+    # Modèles de base
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID unique du client
+          example: 1
+        nom:
+          type: string
+          maxLength: 255
+          description: Nom de l'entreprise cliente
+          example: "Entreprise ABC"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Adresse email du client
+          example: "contact@abc.com"
+        siret:
+          type: string
+          pattern: '^[0-9]{14}$'
+          nullable: true
+          description: Numéro SIRET (14 chiffres)
+          example: "12345678901234"
+        date_creation:
+          type: string
+          format: date
+          nullable: true
+          description: Date de création du client
+          example: "2024-01-15"
+        created_at:
+          type: string
+          format: date-time
+          description: Date de création de l'enregistrement
+          example: "2024-01-15T10:00:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Date de dernière modification
+          example: "2024-01-15T10:00:00.000000Z"
+      required:
+        - id
+        - nom
+        - email
+        - created_at
+        - updated_at
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID unique de la facture
+          example: 1
+        client_id:
+          type: integer
+          format: int64
+          description: ID du client associé
+          example: 1
+        numero_facture:
+          type: string
+          maxLength: 50
+          description: Numéro unique de la facture
+          example: "FAC-2024-0001"
+        date_facture:
+          type: string
+          format: date
+          description: Date d'émission de la facture
+          example: "2024-01-20"
+        total_ht:
+          type: string
+          format: decimal
+          description: Montant total hors taxes
+          example: "6600.00"
+        total_tva:
+          type: string
+          format: decimal
+          description: Montant total de la TVA
+          example: "1320.00"
+        total_ttc:
+          type: string
+          format: decimal
+          description: Montant total toutes taxes comprises
+          example: "7920.00"
+        created_at:
+          type: string
+          format: date-time
+          description: Date de création de l'enregistrement
+          example: "2024-01-20T10:00:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Date de dernière modification
+          example: "2024-01-20T10:00:00.000000Z"
+      required:
+        - id
+        - client_id
+        - numero_facture
+        - date_facture
+        - total_ht
+        - total_tva
+        - total_ttc
+        - created_at
+        - updated_at
+
+    InvoiceLine:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID unique de la ligne
+          example: 1
+        invoice_id:
+          type: integer
+          format: int64
+          description: ID de la facture associée
+          example: 1
+        description:
+          type: string
+          maxLength: 500
+          description: Description de la prestation
+          example: "Prestation de développement"
+        quantite:
+          type: string
+          format: decimal
+          description: Quantité
+          example: "10.00"
+        prix_unitaire_ht:
+          type: string
+          format: decimal
+          description: Prix unitaire hors taxes
+          example: "500.00"
+        taux_tva:
+          type: string
+          format: decimal
+          description: Taux de TVA en pourcentage
+          example: "20.00"
+        montant_ht:
+          type: string
+          format: decimal
+          description: Montant hors taxes (quantité × prix unitaire)
+          example: "5000.00"
+        montant_tva:
+          type: string
+          format: decimal
+          description: Montant de la TVA
+          example: "1000.00"
+        montant_ttc:
+          type: string
+          format: decimal
+          description: Montant toutes taxes comprises
+          example: "6000.00"
+        created_at:
+          type: string
+          format: date-time
+          description: Date de création de l'enregistrement
+          example: "2024-01-20T10:00:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Date de dernière modification
+          example: "2024-01-20T10:00:00.000000Z"
+      required:
+        - id
+        - invoice_id
+        - description
+        - quantite
+        - prix_unitaire_ht
+        - taux_tva
+        - montant_ht
+        - montant_tva
+        - montant_ttc
+        - created_at
+        - updated_at
+
+    # Modèles de requête
+    CreateClientRequest:
+      type: object
+      properties:
+        nom:
+          type: string
+          maxLength: 255
+          description: Nom de l'entreprise cliente
+          example: "Entreprise ABC"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Adresse email du client
+          example: "contact@abc.com"
+        siret:
+          type: string
+          pattern: '^[0-9]{14}$'
+          nullable: true
+          description: Numéro SIRET (14 chiffres)
+          example: "12345678901234"
+        date_creation:
+          type: string
+          format: date
+          nullable: true
+          description: Date de création du client
+          example: "2024-01-15"
+      required:
+        - nom
+        - email
+
+    UpdateClientRequest:
+      type: object
+      properties:
+        nom:
+          type: string
+          maxLength: 255
+          description: Nom de l'entreprise cliente
+          example: "Entreprise ABC Modifiée"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: Adresse email du client
+          example: "nouveau@abc.com"
+        siret:
+          type: string
+          pattern: '^[0-9]{14}$'
+          nullable: true
+          description: Numéro SIRET (14 chiffres)
+          example: "12345678901234"
+        date_creation:
+          type: string
+          format: date
+          nullable: true
+          description: Date de création du client
+          example: "2024-01-15"
+
+    InvoiceLineRequest:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 500
+          description: Description de la prestation
+          example: "Prestation de développement"
+        quantite:
+          type: number
+          format: float
+          minimum: 0.01
+          description: Quantité
+          example: 10
+        prix_unitaire_ht:
+          type: number
+          format: float
+          minimum: 0
+          description: Prix unitaire hors taxes
+          example: 500.00
+        taux_tva:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Taux de TVA en pourcentage
+          example: 20.00
+      required:
+        - description
+        - quantite
+        - prix_unitaire_ht
+        - taux_tva
+
+    CreateInvoiceRequest:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+          description: ID du client associé
+          example: 1
+        numero_facture:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Numéro de facture (généré automatiquement si non fourni)
+          example: "FAC-2024-0001"
+        date_facture:
+          type: string
+          format: date
+          description: Date d'émission de la facture
+          example: "2024-01-20"
+        lines:
+          type: array
+          minItems: 1
+          description: Lignes de la facture
+          items:
+            $ref: '#/components/schemas/InvoiceLineRequest'
+      required:
+        - client_id
+        - date_facture
+        - lines
+
+    UpdateInvoiceRequest:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+          description: ID du client associé
+          example: 1
+        numero_facture:
+          type: string
+          maxLength: 50
+          description: Numéro de facture
+          example: "FAC-2024-0001"
+        date_facture:
+          type: string
+          format: date
+          description: Date d'émission de la facture
+          example: "2024-01-25"
+        lines:
+          type: array
+          minItems: 1
+          description: Lignes de la facture
+          items:
+            $ref: '#/components/schemas/InvoiceLineRequest'
+
+    # Modèles de réponse
+    BaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indique si la requête a réussi
+          example: true
+        message:
+          type: string
+          description: Message descriptif
+          example: "Opération réussie"
+      required:
+        - success
+        - message
+
+    SuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            success:
+              example: true
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            success:
+              example: false
+            error:
+              type: string
+              description: Détails techniques de l'erreur
+              example: "Erreur technique détaillée"
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errors:
+              type: object
+              description: Erreurs de validation par champ
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              example:
+                email:
+                  - "Cette adresse email est déjà utilisée."
+                siret:
+                  - "Le SIRET doit contenir exactement 14 caractères."
+
+    ClientResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Client'
+
+    ClientsListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Client'
+
+    InvoiceResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Invoice'
+
+    InvoicesListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Invoice'
+
+    InvoiceWithClient:
+      allOf:
+        - $ref: '#/components/schemas/Invoice'
+        - type: object
+          properties:
+            client:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                nom:
+                  type: string
+                  example: "Entreprise ABC"
+                email:
+                  type: string
+                  example: "contact@abc.com"
+
+    InvoicesWithClientListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/InvoiceWithClient'
+
+    InvoiceWithLines:
+      allOf:
+        - $ref: '#/components/schemas/Invoice'
+        - type: object
+          properties:
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/InvoiceLine'
+            client:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                nom:
+                  type: string
+                  example: "Entreprise ABC"
+                email:
+                  type: string
+                  example: "contact@abc.com"
+
+    InvoiceWithLinesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InvoiceWithLines'
+
+    InvoiceStats:
+      type: object
+      properties:
+        total_invoices:
+          type: integer
+          description: Nombre total de factures
+          example: 25
+        total_amount_ht:
+          type: string
+          format: decimal
+          description: Montant total HT de toutes les factures
+          example: "125000.00"
+        total_amount_tva:
+          type: string
+          format: decimal
+          description: Montant total TVA de toutes les factures
+          example: "25000.00"
+        total_amount_ttc:
+          type: string
+          format: decimal
+          description: Montant total TTC de toutes les factures
+          example: "150000.00"
+        average_amount_ttc:
+          type: string
+          format: decimal
+          description: Montant moyen TTC par facture
+          example: "6000.00"
+        invoices_this_month:
+          type: integer
+          description: Nombre de factures ce mois-ci
+          example: 8
+        amount_this_month:
+          type: string
+          format: decimal
+          description: Montant TTC des factures ce mois-ci
+          example: "48000.00"
+      required:
+        - total_invoices
+        - total_amount_ht
+        - total_amount_tva
+        - total_amount_ttc
+        - average_amount_ttc
+        - invoices_this_month
+        - amount_this_month
+
+    InvoiceStatsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InvoiceStats'
+
+    HealthData:
+      type: object
+      properties:
+        status:
+          type: string
+          description: État de l'API
+          example: "OK"
+        timestamp:
+          type: string
+          format: date-time
+          description: Horodatage de la vérification
+          example: "2024-01-20T10:00:00.000000Z"
+        version:
+          type: string
+          description: Version de l'API
+          example: "1.0.0"
+      required:
+        - status
+        - timestamp
+        - version
+
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/HealthData'
+
+  responses:
+    ClientNotFound:
+      description: Client non trouvé
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Client non trouvé"
+
+    InvoiceNotFound:
+      description: Facture non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Facture non trouvée"
+
+    ValidationError:
+      description: Erreur de validation des données
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          example:
+            success: false
+            message: "Erreur de validation"
+            errors:
+              email:
+                - "Cette adresse email est déjà utilisée."
+              siret:
+                - "Le SIRET doit contenir exactement 14 caractères."
+
+    ServerError:
+      description: Erreur interne du serveur
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "Erreur interne du serveur"
+            error: "Détails techniques de l'erreur"
+
+tags:
+  - name: Clients
+    description: Gestion des clients
+  - name: Factures
+    description: Gestion des factures et lignes de facture
+  - name: Utilitaires
+    description: Endpoints utilitaires et de monitoring
