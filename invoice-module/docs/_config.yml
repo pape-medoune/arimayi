@@ -1,0 +1,55 @@
+# Configuration GitHub Pages pour la documentation Swagger
+title: "API de Facturation - Documentation"
+description: "Documentation interactive complète pour le module de gestion des clients et factures"
+url: "https://[votre-username].github.io"
+baseurl: "/[nom-du-repo]"
+
+# Thème GitHub Pages
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Configuration Markdown
+markdown: kramdown
+highlighter: rouge
+
+# Exclusions
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .sass-cache
+  - .jekyll-cache
+  - .jekyll-metadata
+
+# Inclusions
+include:
+  - api-docs.json
+  - api-docs.yaml
+
+# Configuration SEO
+author:
+  name: "Votre Nom"
+  email: "votre.email@example.com"
+
+social:
+  name: "API de Facturation"
+  links:
+    - "https://github.com/[votre-username]/[nom-du-repo]"
+
+# Configuration des collections
+collections_dir: collections
+
+# Paramètres par défaut
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+      author: "Votre Nom"
