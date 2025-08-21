@@ -8,7 +8,7 @@ This directory contains the Swagger UI documentation for the Invoice Module API.
 
 - **Live Documentation**: [View API Documentation](./index.html)
 - **JSON Schema**: [api-docs.json](./api-docs.json)
-
+ 
 ### Available Endpoints
 
 - **Clients Management**: CRUD operations for clients
