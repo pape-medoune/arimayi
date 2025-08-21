@@ -1,0 +1,1239 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Module de Facturation",
+        "description": "API REST pour la gestion des clients et factures avec calculs automatiques de TVA et totaux.",
+        "contact": {
+            "name": "Support Technique",
+            "email": "support@facturation.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api",
+            "description": "Serveur de développement"
+        },
+        {
+            "url": "https://api.facturation.com/api",
+            "description": "Serveur de production"
+        }
+    ],
+    "paths": {
+        "/clients": {
+            "get": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Récupère la liste des clients",
+                "description": "Retourne une liste paginée de tous les clients avec leurs factures",
+                "operationId": "6536f8d22d25758c3e14dbbe8e228af0",
+                "responses": {
+                    "200": {
+                        "description": "Liste des clients récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "data": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/components/schemas/Client"
+                                                            }
+                                                        },
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 50
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Crée un nouveau client",
+                "description": "Crée un nouveau client avec validation des données",
+                "operationId": "74a35b85418e09c2489915865dd22445",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreClientRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Client créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Client"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/clients/{id}": {
+            "get": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Récupère un client spécifique",
+                "description": "Retourne les détails d'un client avec ses factures et lignes de facture",
+                "operationId": "1837c830668b0f7aa87761172e9a8cf9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du client",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Client récupéré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Client"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Client non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Met à jour un client",
+                "description": "Met à jour les informations d'un client existant",
+                "operationId": "1ee17ab59b59dd0a816f385b724d2b6c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du client",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateClientRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Client mis à jour avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Client"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Client non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Supprime un client",
+                "description": "Supprime un client s'il n'a pas de factures associées",
+                "operationId": "3505fe07e8722ba21177850f874211f2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du client",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Client supprimé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Client non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Impossible de supprimer le client car il a des factures associées",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/clients/{id}/invoices": {
+            "get": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Récupère les factures d'un client",
+                "description": "Retourne toutes les factures associées à un client spécifique",
+                "operationId": "52021dddfdf201e4f82cfbcd82b2c1ea",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du client",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Factures du client récupérées avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Invoice"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Client non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Vérification de l'état de l'API",
+                "description": "Endpoint de santé pour vérifier que l'API fonctionne correctement",
+                "operationId": "4931a93c4d00de87f27eb43f3a42b17c",
+                "responses": {
+                    "200": {
+                        "description": "API opérationnelle",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "OK"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "API Module de Facturation opérationnelle"
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "example": "2024-01-15T10:30:00Z"
+                                        },
+                                        "version": {
+                                            "type": "string",
+                                            "example": "1.0.0"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/invoices": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Récupère la liste des factures",
+                "description": "Retourne une liste paginée de toutes les factures avec leurs clients et lignes",
+                "operationId": "6d247429479a7a96338af3a38d52e215",
+                "responses": {
+                    "200": {
+                        "description": "Liste des factures récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "properties": {
+                                                        "current_page": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "data": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/components/schemas/Invoice"
+                                                            }
+                                                        },
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 25
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Crée une nouvelle facture",
+                "description": "Crée une nouvelle facture avec ses lignes et calculs automatiques",
+                "operationId": "b22372f77704d157104e4a6061b135d0",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreInvoiceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Facture créée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Invoice"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/invoices/{id}": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Récupère une facture spécifique",
+                "description": "Retourne les détails d'une facture avec son client et ses lignes",
+                "operationId": "93cb2b87637ce1c8b34f4d784d8b8820",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la facture",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Facture récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Invoice"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Facture non trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Met à jour une facture",
+                "description": "Met à jour une facture existante avec recalcul automatique des totaux",
+                "operationId": "1e7ea8e3386e43497edbe51374b1ccb3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la facture",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateInvoiceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Facture mise à jour avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/Invoice"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Facture non trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Supprime une facture",
+                "description": "Supprime une facture et toutes ses lignes associées",
+                "operationId": "ad79fd4aee964cd008bc746e724544f6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la facture",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Facture supprimée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Facture non trouvée",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/invoices/stats": {
+            "get": {
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Récupère les statistiques des factures",
+                "description": "Retourne des statistiques globales sur les factures (totaux, moyennes, etc.)",
+                "operationId": "3fc9ec4f7726554c4b4fd41adcc757d4",
+                "responses": {
+                    "200": {
+                        "description": "Statistiques récupérées avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/SuccessResponse"
+                                        },
+                                        {
+                                            "properties": {
+                                                "data": {
+                                                    "$ref": "#/components/schemas/InvoiceStats"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erreur serveur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Client": {
+                "required": [
+                    "nom",
+                    "email",
+                    "siret",
+                    "date_creation"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nom": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "Entreprise ACME"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "example": "contact@acme.com"
+                    },
+                    "siret": {
+                        "type": "string",
+                        "pattern": "^[0-9]{14}$",
+                        "example": "12345678901234"
+                    },
+                    "date_creation": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-15"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    }
+                },
+                "type": "object"
+            },
+            "Invoice": {
+                "required": [
+                    "client_id",
+                    "numero_facture",
+                    "date_facture"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "client_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "numero_facture": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "example": "FAC-2024-001"
+                    },
+                    "date_facture": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-15"
+                    },
+                    "total_ht": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000
+                    },
+                    "total_tva": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 200
+                    },
+                    "total_ttc": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1200
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    },
+                    "client": {
+                        "$ref": "#/components/schemas/Client"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceLine"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "InvoiceLine": {
+                "required": [
+                    "description",
+                    "quantite",
+                    "prix_unitaire_ht",
+                    "taux_tva"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "invoice_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "example": "Développement application web"
+                    },
+                    "quantite": {
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0.01,
+                        "example": 10.5
+                    },
+                    "prix_unitaire_ht": {
+                        "type": "number",
+                        "format": "float",
+                        "minimum": 0.01,
+                        "example": 95.24
+                    },
+                    "taux_tva": {
+                        "type": "number",
+                        "format": "float",
+                        "maximum": 100,
+                        "minimum": 0,
+                        "example": 20
+                    },
+                    "total_ht": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000.02
+                    },
+                    "total_tva": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 200
+                    },
+                    "total_ttc": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1200.02
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-01-15T10:30:00Z"
+                    }
+                },
+                "type": "object"
+            },
+            "StoreClientRequest": {
+                "required": [
+                    "nom",
+                    "email",
+                    "siret",
+                    "date_creation"
+                ],
+                "properties": {
+                    "nom": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "Entreprise ACME"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "example": "contact@acme.com"
+                    },
+                    "siret": {
+                        "type": "string",
+                        "pattern": "^[0-9]{14}$",
+                        "example": "12345678901234"
+                    },
+                    "date_creation": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-15"
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateClientRequest": {
+                "properties": {
+                    "nom": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "Entreprise ACME Modifiée"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "example": "nouveau@acme.com"
+                    },
+                    "siret": {
+                        "type": "string",
+                        "pattern": "^[0-9]{14}$",
+                        "example": "98765432109876"
+                    },
+                    "date_creation": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-20"
+                    }
+                },
+                "type": "object"
+            },
+            "StoreInvoiceRequest": {
+                "required": [
+                    "client_id",
+                    "numero_facture",
+                    "date_facture",
+                    "lines"
+                ],
+                "properties": {
+                    "client_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "numero_facture": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "example": "FAC-2024-001"
+                    },
+                    "date_facture": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-15"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "required": [
+                                "description",
+                                "quantite",
+                                "prix_unitaire_ht",
+                                "taux_tva"
+                            ],
+                            "properties": {
+                                "description": {
+                                    "type": "string",
+                                    "maxLength": 500,
+                                    "example": "Développement application web"
+                                },
+                                "quantite": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "minimum": 0.01,
+                                    "example": 10.5
+                                },
+                                "prix_unitaire_ht": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "minimum": 0.01,
+                                    "example": 95.24
+                                },
+                                "taux_tva": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "maximum": 100,
+                                    "minimum": 0,
+                                    "example": 20
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "minItems": 1
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateInvoiceRequest": {
+                "properties": {
+                    "client_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "numero_facture": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "example": "FAC-2024-001-MOD"
+                    },
+                    "date_facture": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-20"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "required": [
+                                "description",
+                                "quantite",
+                                "prix_unitaire_ht",
+                                "taux_tva"
+                            ],
+                            "properties": {
+                                "description": {
+                                    "type": "string",
+                                    "maxLength": 500,
+                                    "example": "Développement application web modifié"
+                                },
+                                "quantite": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "minimum": 0.01,
+                                    "example": 12
+                                },
+                                "prix_unitaire_ht": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "minimum": 0.01,
+                                    "example": 100
+                                },
+                                "taux_tva": {
+                                    "type": "number",
+                                    "format": "float",
+                                    "maximum": 100,
+                                    "minimum": 0,
+                                    "example": 20
+                                }
+                            },
+                            "type": "object"
+                        },
+                        "minItems": 1
+                    }
+                },
+                "type": "object"
+            },
+            "SuccessResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Opération réussie"
+                    },
+                    "data": {
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Une erreur s'est produite"
+                    },
+                    "errors": {
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "ValidationErrorResponse": {
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Erreur de validation"
+                    },
+                    "errors": {
+                        "properties": {
+                            "email": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "example": "L'email est obligatoire."
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "InvoiceStats": {
+                "properties": {
+                    "total_invoices": {
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "total_amount_ht": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 125000
+                    },
+                    "total_amount_tva": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 25000
+                    },
+                    "total_amount_ttc": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 150000
+                    },
+                    "average_amount_ttc": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 1000
+                    },
+                    "invoices_this_month": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "amount_this_month_ttc": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 15000
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Health",
+            "description": "Vérification de l'état de l'API"
+        },
+        {
+            "name": "Clients",
+            "description": "Gestion des clients"
+        },
+        {
+            "name": "Invoices",
+            "description": "Gestion des factures"
+        }
+    ]
+}

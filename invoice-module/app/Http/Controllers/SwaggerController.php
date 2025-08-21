@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Controller;
+use App\Http\Controllers\Controller;
+use OpenApi\Annotations as OA;
 
 /**
  * @OA\Info(
